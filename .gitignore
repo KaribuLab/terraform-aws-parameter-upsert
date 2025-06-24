@@ -6,4 +6,4 @@ terraform.tfstate.backup
 terraform.tfvars
 input.json
 .env
-ssm-parameter
+ssm-parameter*

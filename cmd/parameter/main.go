@@ -19,12 +19,11 @@ type Input struct {
 }
 
 type Parameter struct {
-	Path        string            `json:"path"`
-	Value       string            `json:"value"`
-	Type        string            `json:"type"`
-	Tier        string            `json:"tier"`
-	Description string            `json:"description"`
-	Tags        map[string]string `json:"tags"`
+	Path        string `json:"path"`
+	Value       string `json:"value"`
+	Type        string `json:"type"`
+	Tier        string `json:"tier"`
+	Description string `json:"description"`
 }
 
 var overwrite bool = true

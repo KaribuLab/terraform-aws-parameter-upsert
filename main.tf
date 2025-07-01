@@ -13,13 +13,14 @@ resource "null_resource" "provider_linux_amd64" {
   count = local.is_linux ? 1 : 0
   triggers = {
     md5 = md5(local.json_input)
+    version = local.version
   }
   provisioner "local-exec" {
-    command     = "curl -L https://github.com/KaribuLab/terraform-aws-parameter-upsert/releases/download/${local.version}/ssm-parameter-linux-amd64.tar.gz -o ssm-parameter-linux-amd64.tar.gz"
+    command     = "curl -L https://github.com/KaribuLab/terraform-aws-parameter-upsert/releases/download/${self.triggers.version}/ssm-parameter-linux-amd64.tar.gz -o ssm-parameter-linux-amd64-${self.triggers.version}.tar.gz"
     interpreter = ["/bin/sh", "-c"]
   }
   provisioner "local-exec" {
-    command     = "tar -xzf ssm-parameter-linux-amd64.tar.gz"
+    command     = "tar -xzf ssm-parameter-linux-amd64-${self.triggers.version}.tar.gz"
     interpreter = ["/bin/sh", "-c"]
   }
   provisioner "local-exec" {
@@ -32,12 +33,13 @@ resource "null_resource" "provider_darwin_amd64" {
   count = local.is_darwin ? 1 : 0
   triggers = {
     md5 = md5(local.json_input)
+    version = local.version
   }
   provisioner "local-exec" {
-    command = "curl -L https://github.com/KaribuLab/terraform-aws-parameter-upsert/releases/download/${local.version}/ssm-parameter-darwin-amd64.tar.gz -o ssm-parameter-darwin-amd64.tar.gz"
+    command = "curl -L https://github.com/KaribuLab/terraform-aws-parameter-upsert/releases/download/${self.triggers.version}/ssm-parameter-darwin-amd64.tar.gz -o ssm-parameter-darwin-amd64-${self.triggers.version}.tar.gz"
   }
   provisioner "local-exec" {
-    command     = "tar -xzf ssm-parameter-darwin-amd64.tar.gz"
+    command     = "tar -xzf ssm-parameter-darwin-amd64-${self.triggers.version}.tar.gz"
     interpreter = ["/bin/sh", "-c"]
   }
   provisioner "local-exec" {
@@ -50,13 +52,14 @@ resource "null_resource" "provider_windows_amd64" {
   count = local.is_windows ? 1 : 0
   triggers = {
     md5 = md5(local.json_input)
+    version = local.version
   }
   provisioner "local-exec" {
-    command     = "wget https://github.com/KaribuLab/terraform-aws-parameter-upsert/releases/download/v0.1.0/ssm-parameter-windows-amd64.zip -OutFile ssm-parameter-windows-amd64.zip"
+    command     = "wget https://github.com/KaribuLab/terraform-aws-parameter-upsert/releases/download/${self.triggers.version}/ssm-parameter-windows-amd64.zip -OutFile ssm-parameter-windows-amd64-${self.triggers.version}.zip"
     interpreter = ["PowerShell", "-Command"]
   }
   provisioner "local-exec" {
-    command     = "Expand-Archive -Path ssm-parameter-windows-amd64.zip -DestinationPath . -Force"
+    command     = "Expand-Archive -Path ssm-parameter-windows-amd64-${self.triggers.version}.zip -DestinationPath . -Force"
     interpreter = ["PowerShell", "-Command"]
   }
   provisioner "local-exec" {
@@ -70,6 +73,7 @@ resource "null_resource" "upsert_parameters_linux_amd64" {
   depends_on = [null_resource.provider_linux_amd64]
   triggers = {
     md5 = md5(local.json_input)
+    version = local.version
   }
   provisioner "local-exec" {
     command = <<EOF
@@ -78,7 +82,14 @@ resource "null_resource" "upsert_parameters_linux_amd64" {
     EOF
   }
   provisioner "local-exec" {
+    when = create
     command     = "./ssm-parameter -input-path input.json"
+    interpreter = ["/bin/sh", "-c"]
+  }
+
+  provisioner "local-exec" {
+    when = destroy
+    command     = "./ssm-parameter -input-path input.json -delete"
     interpreter = ["/bin/sh", "-c"]
   }
 }
@@ -88,6 +99,7 @@ resource "null_resource" "upsert_parameters_darwin_amd64" {
   depends_on = [null_resource.provider_darwin_amd64]
   triggers = {
     md5 = md5(local.json_input)
+    version = local.version
   }
   provisioner "local-exec" {
     command = <<EOF
@@ -96,7 +108,13 @@ resource "null_resource" "upsert_parameters_darwin_amd64" {
     EOF
   }
   provisioner "local-exec" {
+    when = create
     command     = "./ssm-parameter -input-path input.json"
+    interpreter = ["/bin/sh", "-c"]
+  }
+  provisioner "local-exec" {
+    when = destroy
+    command     = "./ssm-parameter -input-path input.json -delete"
     interpreter = ["/bin/sh", "-c"]
   }
 }
@@ -106,6 +124,7 @@ resource "null_resource" "upsert_parameters_windows_amd64" {
   depends_on = [null_resource.provider_windows_amd64]
   triggers = {
     md5 = md5(local.json_input)
+    version = local.version
   }
   provisioner "local-exec" {
     command = <<EOF
@@ -115,7 +134,13 @@ resource "null_resource" "upsert_parameters_windows_amd64" {
     EOF
   }
   provisioner "local-exec" {
+    when = create
     command     = "ssm-parameter -input-path input.json"
+    interpreter = ["PowerShell", "-Command"]
+  }
+  provisioner "local-exec" {
+    when = destroy
+    command     = "ssm-parameter-input-path input.json -delete"
     interpreter = ["PowerShell", "-Command"]
   }
 }

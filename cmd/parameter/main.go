@@ -40,9 +40,9 @@ func init() {
 func main() {
 	var inputPath string
 	flag.StringVar(&inputPath, "input-path", "", "input path")
-	flag.Parse()
 	var delete bool
 	flag.BoolVar(&delete, "delete", false, "delete parameters")
+	flag.Parse()
 
 	input, err := os.ReadFile(inputPath)
 	if err != nil {

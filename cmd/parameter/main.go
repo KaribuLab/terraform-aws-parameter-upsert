@@ -41,6 +41,8 @@ func main() {
 	var inputPath string
 	flag.StringVar(&inputPath, "input-path", "", "input path")
 	flag.Parse()
+	var delete bool
+	flag.BoolVar(&delete, "delete", false, "delete parameters")
 
 	input, err := os.ReadFile(inputPath)
 	if err != nil {
@@ -53,20 +55,33 @@ func main() {
 		log.Fatalf("Failed to unmarshal input: %v", err)
 	}
 
-	for _, parameter := range inputData.Parameters {
-		path := fmt.Sprintf("%s/%s", inputData.BasePath, parameter.Path)
-		output, err := client.PutParameter(context.TODO(), &ssm.PutParameterInput{
-			Name:        &path,
-			Value:       &parameter.Value,
-			Description: &parameter.Description,
-			Tier:        types.ParameterTier(parameter.Tier),
-			Type:        types.ParameterType(parameter.Type),
-			Overwrite:   &overwrite,
-		})
-		if err != nil {
-			log.Fatalf("Failed to put parameter: %v", err)
+	if delete {
+		for _, parameter := range inputData.Parameters {
+			path := fmt.Sprintf("%s/%s", inputData.BasePath, parameter.Path)
+			_, err := client.DeleteParameter(context.TODO(), &ssm.DeleteParameterInput{
+				Name: &path,
+			})
+			if err != nil {
+				log.Fatalf("Failed to delete parameter: %v", err)
+			}
+			log.Printf("Parameter %s deleted", path)
 		}
-		log.Printf("Parameter %s upserted: %d", parameter.Path, &output.Version)
+		return
+	} else {
+		for _, parameter := range inputData.Parameters {
+			path := fmt.Sprintf("%s/%s", inputData.BasePath, parameter.Path)
+			output, err := client.PutParameter(context.TODO(), &ssm.PutParameterInput{
+				Name:        &path,
+				Value:       &parameter.Value,
+				Description: &parameter.Description,
+				Tier:        types.ParameterTier(parameter.Tier),
+				Type:        types.ParameterType(parameter.Type),
+				Overwrite:   &overwrite,
+			})
+			if err != nil {
+				log.Fatalf("Failed to put parameter: %v", err)
+			}
+			log.Printf("Parameter %s upserted: %d", parameter.Path, &output.Version)
+		}
 	}
-
 }

@@ -93,7 +93,6 @@ resource "null_resource" "upsert_parameters_darwin_amd64" {
     command = <<EOF
     cat <<FILE > input.json
     ${local.json_input}
-    FILE
     EOF
   }
   provisioner "local-exec" {

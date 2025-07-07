@@ -2,7 +2,7 @@ locals {
   version    = var.binary_version
   is_windows = length(regexall("^[a-z]:", lower(abspath(path.root)))) > 0
   is_darwin  = length(regexall("^/users", lower(abspath(path.root)))) > 0
-  is_linux   = length(regexall("^/home", lower(abspath(path.root)))) > 0
+  is_linux   = !local.is_windows && !local.is_darwin
   json_input = jsonencode({
     base_path  = var.base_path
     parameters = var.parameters

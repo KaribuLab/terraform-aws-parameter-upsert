@@ -12,8 +12,7 @@ locals {
 resource "null_resource" "provider_linux_amd64" {
   count = local.is_linux ? 1 : 0
   triggers = {
-    md5 = md5(local.json_input)
-    version = local.version
+    timestamp = timestamp()
   }
   provisioner "local-exec" {
     command     = "curl -L https://github.com/KaribuLab/terraform-aws-parameter-upsert/releases/download/${self.triggers.version}/ssm-parameter-linux-amd64.tar.gz -o ssm-parameter-linux-amd64-${self.triggers.version}.tar.gz"
@@ -32,8 +31,7 @@ resource "null_resource" "provider_linux_amd64" {
 resource "null_resource" "provider_darwin_amd64" {
   count = local.is_darwin ? 1 : 0
   triggers = {
-    md5 = md5(local.json_input)
-    version = local.version
+    timestamp = timestamp()
   }
   provisioner "local-exec" {
     command = "curl -L https://github.com/KaribuLab/terraform-aws-parameter-upsert/releases/download/${self.triggers.version}/ssm-parameter-darwin-amd64.tar.gz -o ssm-parameter-darwin-amd64-${self.triggers.version}.tar.gz"
@@ -51,8 +49,7 @@ resource "null_resource" "provider_darwin_amd64" {
 resource "null_resource" "provider_windows_amd64" {
   count = local.is_windows ? 1 : 0
   triggers = {
-    md5 = md5(local.json_input)
-    version = local.version
+    timestamp = timestamp()
   }
   provisioner "local-exec" {
     command     = "wget https://github.com/KaribuLab/terraform-aws-parameter-upsert/releases/download/${self.triggers.version}/ssm-parameter-windows-amd64.zip -OutFile ssm-parameter-windows-amd64-${self.triggers.version}.zip"

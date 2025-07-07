@@ -1,6 +1,6 @@
 variable "binary_version" {
   type    = string
-  default = "v0.3.1"
+  default = "v0.4.1"
 }
 
 variable "base_path" {

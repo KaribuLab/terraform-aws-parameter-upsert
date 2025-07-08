@@ -12,7 +12,7 @@ locals {
 resource "null_resource" "ssm_parameter_linux_amd64" {
   count = local.is_linux ? 1 : 0
   triggers = {
-    md5     = md5(local.json_input)
+    json_input    = local.json_input
     version = local.version
   }
   
@@ -55,7 +55,7 @@ resource "null_resource" "ssm_parameter_linux_amd64" {
     when = create
     command = <<EOF
     cat <<FILE > input.json
-    ${local.json_input}
+    ${self.triggers.json_input}
     EOF
   }
   
@@ -64,7 +64,7 @@ resource "null_resource" "ssm_parameter_linux_amd64" {
     when = destroy
     command = <<EOF
     cat <<FILE > input.json
-    ${local.json_input}
+    ${self.triggers.json_input}
     EOF
   }
   
@@ -86,7 +86,7 @@ resource "null_resource" "ssm_parameter_linux_amd64" {
 resource "null_resource" "ssm_parameter_darwin_amd64" {
   count = local.is_darwin ? 1 : 0
   triggers = {
-    md5     = md5(local.json_input)
+    json_input    = local.json_input
     version = local.version
   }
   
@@ -127,7 +127,7 @@ resource "null_resource" "ssm_parameter_darwin_amd64" {
     when = create
     command = <<EOF
     cat <<FILE > input.json
-    ${local.json_input}
+    ${self.triggers.json_input}
     EOF
   }
   
@@ -136,7 +136,7 @@ resource "null_resource" "ssm_parameter_darwin_amd64" {
     when = destroy
     command = <<EOF
     cat <<FILE > input.json
-    ${local.json_input}
+    ${self.triggers.json_input}
     EOF
   }
   
@@ -158,7 +158,7 @@ resource "null_resource" "ssm_parameter_darwin_amd64" {
 resource "null_resource" "ssm_parameter_windows_amd64" {
   count = local.is_windows ? 1 : 0
   triggers = {
-    md5     = md5(local.json_input)
+    json_input    = local.json_input
     version = local.version
   }
   
@@ -201,7 +201,7 @@ resource "null_resource" "ssm_parameter_windows_amd64" {
     when = create
     command = <<EOF
     @"
-    ${local.json_input}
+    ${self.triggers.json_input}
     "@ | Out-File -FilePath "input.json" -Encoding utf8
     EOF
     interpreter = ["PowerShell", "-Command"]
@@ -212,7 +212,7 @@ resource "null_resource" "ssm_parameter_windows_amd64" {
     when = destroy
     command = <<EOF
     @"
-    ${local.json_input}
+    ${self.triggers.json_input}
     "@ | Out-File -FilePath "input.json" -Encoding utf8
     EOF
     interpreter = ["PowerShell", "-Command"]

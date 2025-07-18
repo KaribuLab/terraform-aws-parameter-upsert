@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
@@ -28,6 +29,8 @@ type Parameter struct {
 
 var overwrite bool = true
 var client *ssm.Client
+var maxRetries int = 30
+var retryDelay time.Duration = 10 * time.Second
 
 func init() {
 	cfg, err := config.LoadDefaultConfig(context.TODO())
@@ -64,7 +67,19 @@ func main() {
 			if err == nil {
 				log.Printf("Parameter %s deleted", path)
 			} else {
-				log.Printf("Parameter %s not found", path)
+				log.Printf("Failed to delete parameter %s: %v", path, err)
+				for i := 0; i < maxRetries; i++ {
+					time.Sleep(retryDelay)
+					_, err = client.DeleteParameter(context.TODO(), &ssm.DeleteParameterInput{
+						Name: &path,
+					})
+					if err == nil {
+						break
+					}
+				}
+				if err != nil {
+					log.Fatalf("Failed to delete parameter %s: %v", path, err)
+				}
 			}
 		}
 		return
@@ -80,7 +95,24 @@ func main() {
 				Overwrite:   &overwrite,
 			})
 			if err != nil {
-				log.Fatalf("Failed to put parameter: %v", err)
+				log.Printf("Failed to put parameter %s: %v", path, err)
+				for i := 0; i < maxRetries; i++ {
+					time.Sleep(retryDelay)
+					_, err = client.PutParameter(context.TODO(), &ssm.PutParameterInput{
+						Name:        &path,
+						Value:       &parameter.Value,
+						Description: &parameter.Description,
+						Tier:        types.ParameterTier(parameter.Tier),
+						Type:        types.ParameterType(parameter.Type),
+						Overwrite:   &overwrite,
+					})
+					if err == nil {
+						break
+					}
+				}
+				if err != nil {
+					log.Fatalf("Failed to put parameter %s: %v", path, err)
+				}
 			}
 			log.Printf("Parameter %s upserted: %d", parameter.Path, &output.Version)
 		}

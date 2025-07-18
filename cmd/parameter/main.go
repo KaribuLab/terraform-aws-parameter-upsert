@@ -61,10 +61,11 @@ func main() {
 			_, err := client.DeleteParameter(context.TODO(), &ssm.DeleteParameterInput{
 				Name: &path,
 			})
-			if err != nil {
-				log.Fatalf("Failed to delete parameter: %v", err)
+			if err == nil {
+				log.Printf("Parameter %s deleted", path)
+			} else {
+				log.Printf("Parameter %s not found", path)
 			}
-			log.Printf("Parameter %s deleted", path)
 		}
 		return
 	} else {

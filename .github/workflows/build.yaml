@@ -112,7 +112,7 @@ jobs:
           
       - name: Build for Linux
         run: |
-          GOOS=linux GOARCH=amd64 go build -o ./bin/ssm-parameter-linux-amd64 ./cmd/parameter
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -extldflags '-static'" -o ./bin/ssm-parameter-linux-amd64 ./cmd/parameter
         
       - name: Build for macOS
         run: |

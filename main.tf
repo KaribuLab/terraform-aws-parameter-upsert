@@ -67,11 +67,18 @@ resource "null_resource" "ssm_parameter_linux_amd64" {
     ${self.triggers.json_input}
     EOF
   }
+
+  # Valida que exista archivo 
+  provisioner "local-exec" {
+    when        = create
+    command     = "ls -l"
+    interpreter = ["/bin/sh", "-c"]
+  }
   
   # Ejecutar creación
   provisioner "local-exec" {
     when        = create
-    command     = "./ssm-parameter -input-path input.json"
+    command     = "bash ./ssm-parameter -input-path input.json"
     interpreter = ["/bin/sh", "-c"]
   }
 

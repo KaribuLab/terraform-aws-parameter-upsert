@@ -9,6 +9,8 @@ import (
 	"os"
 	"time"
 
+	"errors"
+
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
@@ -67,6 +69,13 @@ func main() {
 			if err == nil {
 				log.Printf("Parameter %s deleted", path)
 			} else {
+				// Verificar si el error es ParameterNotFound
+				var paramNotFound *types.ParameterNotFound
+				if ok := errors.As(err, &paramNotFound); ok {
+					log.Printf("Parameter %s not found, skipping retry", path)
+					continue
+				}
+
 				log.Printf("Failed to delete parameter %s: %v", path, err)
 				for i := 0; i < maxRetries; i++ {
 					time.Sleep(retryDelay)
@@ -74,6 +83,12 @@ func main() {
 						Name: &path,
 					})
 					if err == nil {
+						break
+					}
+					// Verificar si el error es ParameterNotFound durante los reintentos
+					if ok := errors.As(err, &paramNotFound); ok {
+						log.Printf("Parameter %s not found during retry, skipping", path)
+						err = nil
 						break
 					}
 				}

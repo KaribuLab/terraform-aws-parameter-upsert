@@ -71,7 +71,7 @@ func main() {
 			} else {
 				// Verificar si el error es ParameterNotFound
 				var paramNotFound *types.ParameterNotFound
-				if ok := errors.As(err, &paramNotFound); ok {
+				if errors.As(err, &paramNotFound) {
 					log.Printf("Parameter %s not found, skipping retry", path)
 					continue
 				}
@@ -86,7 +86,7 @@ func main() {
 						break
 					}
 					// Verificar si el error es ParameterNotFound durante los reintentos
-					if ok := errors.As(err, &paramNotFound); ok {
+					if errors.As(err, &paramNotFound) {
 						log.Printf("Parameter %s not found during retry, skipping", path)
 						err = nil
 						break

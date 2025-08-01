@@ -61,6 +61,8 @@ func main() {
 	}
 
 	if delete {
+		var paramNotFound *types.ParameterNotFound
+		var throttleException *types.ThrottlingException
 		for _, parameter := range inputData.Parameters {
 			path := fmt.Sprintf("%s/%s", inputData.BasePath, parameter.Path)
 			_, err := client.DeleteParameter(context.TODO(), &ssm.DeleteParameterInput{
@@ -70,7 +72,6 @@ func main() {
 				log.Printf("Parameter %s deleted", path)
 			} else {
 				// Verificar si el error es ParameterNotFound
-				var paramNotFound *types.ParameterNotFound
 				if errors.As(err, &paramNotFound) {
 					log.Printf("Parameter %s not found, skipping retry", path)
 					continue
@@ -82,15 +83,12 @@ func main() {
 					_, err = client.DeleteParameter(context.TODO(), &ssm.DeleteParameterInput{
 						Name: &path,
 					})
-					if err == nil {
-						break
+					// Verificar si el error es ThrottlingException
+					if errors.As(err, &throttleException) {
+						log.Printf("Throttling exception during retry, sleeping for %d seconds", retryDelay/time.Second)
+						continue
 					}
-					// Verificar si el error es ParameterNotFound durante los reintentos
-					if errors.As(err, &paramNotFound) {
-						log.Printf("Parameter %s not found during retry, skipping", path)
-						err = nil
-						break
-					}
+					break
 				}
 				if err != nil {
 					log.Fatalf("Failed to delete parameter %s: %v", path, err)

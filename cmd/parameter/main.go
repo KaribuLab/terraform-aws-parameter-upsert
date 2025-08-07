@@ -98,6 +98,7 @@ func main() {
 		return
 	} else {
 		for _, parameter := range inputData.Parameters {
+			time.Sleep(1 * time.Second)
 			path := fmt.Sprintf("%s/%s", inputData.BasePath, parameter.Path)
 			output, err := client.PutParameter(context.TODO(), &ssm.PutParameterInput{
 				Name:        &path,

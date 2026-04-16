@@ -1,0 +1,46 @@
+name: mirror-bitbucket
+
+on:
+  workflow_run:
+    workflows: ["ci"]
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Checkout GitHub repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Clonar historial completo para mirror
+
+      - name: Setup Git configuration
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Clone Bitbucket repository
+        env:
+          BITBUCKET_USERNAME: ${{ secrets.BITBUCKET_USERNAME }}
+          BITBUCKET_API_TOKEN: ${{ secrets.BITBUCKET_API_TOKEN }}
+          BITBUCKET_REPO_URL_CLARO: ${{ secrets.BITBUCKET_REPO_URL_CLARO }}
+        run: |
+          # Clonar repo de Bitbucket
+          git clone https://${BITBUCKET_USERNAME}:${BITBUCKET_API_TOKEN}@${BITBUCKET_REPO_URL_CLARO} bitbucket-repo
+
+      - name: Commit and push to Bitbucket
+        working-directory: bitbucket-repo
+        env:
+          BITBUCKET_USERNAME: ${{ secrets.BITBUCKET_USERNAME }}
+          BITBUCKET_API_TOKEN: ${{ secrets.BITBUCKET_API_TOKEN }}
+          BITBUCKET_USER_EMAIL: ${{ secrets.BITBUCKET_USER_EMAIL }}
+          BITBUCKET_WORKSPACE_CLARO: ${{ secrets.BITBUCKET_WORKSPACE_CLARO }}
+          BITBUCKET_REPO_NAME_CLARO: ${{ secrets.BITBUCKET_REPO_NAME_CLARO }}
+          MODULE_NAME: ${{ vars.MODULE_NAME }}
+          MIRROR_SUBDIR: karibu/${{ vars.MODULE_NAME }}
+          SOURCE_REPO_DIR: ..
+        run: bash ../scripts/push_to_mirror.sh

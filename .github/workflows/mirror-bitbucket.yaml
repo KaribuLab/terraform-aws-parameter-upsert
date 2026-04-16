@@ -2,7 +2,7 @@ name: mirror-bitbucket
 
 on:
   workflow_run:
-    workflows: ["ci"]
+    workflows: ["Build and Release"]
     types:
       - completed
     branches:

@@ -106,7 +106,7 @@ resource "null_resource" "ssm_parameter_linux_amd64" {
   }
 }
 
-resource "null_resource" "ssm_parameter_darwin_amd64" {
+resource "null_resource" "ssm_parameter_darwin_arm64" {
   count = local.is_darwin ? 1 : 0
   triggers = {
     json_input    = local.json_input
@@ -116,32 +116,32 @@ resource "null_resource" "ssm_parameter_darwin_amd64" {
   # Descargar y extraer binario (CREATE)
   provisioner "local-exec" {
     when = create
-    command = "curl -L https://github.com/KaribuLab/terraform-aws-parameter-upsert/releases/download/${self.triggers.version}/ssm-parameter-darwin-amd64.tar.gz -o ssm-parameter-darwin-amd64-${self.triggers.version}.tar.gz"
+    command = "curl -L https://github.com/KaribuLab/terraform-aws-parameter-upsert/releases/download/${self.triggers.version}/ssm-parameter-darwin-arm64.tar.gz -o ssm-parameter-darwin-arm64-${self.triggers.version}.tar.gz"
   }
   provisioner "local-exec" {
     when        = create
-    command     = "tar -xzf ssm-parameter-darwin-amd64-${self.triggers.version}.tar.gz"
+    command     = "tar -xzf ssm-parameter-darwin-arm64-${self.triggers.version}.tar.gz"
     interpreter = ["/bin/sh", "-c"]
   }
   provisioner "local-exec" {
     when        = create
-    command     = "mv ssm-parameter-darwin-amd64 ssm-parameter"
+    command     = "mv ssm-parameter-darwin-arm64 ssm-parameter"
     interpreter = ["/bin/sh", "-c"]
   }
   
   # Descargar y extraer binario (DESTROY) - para pipelines CI/CD
   provisioner "local-exec" {
     when = destroy
-    command = "curl -L https://github.com/KaribuLab/terraform-aws-parameter-upsert/releases/download/${self.triggers.version}/ssm-parameter-darwin-amd64.tar.gz -o ssm-parameter-darwin-amd64-${self.triggers.version}.tar.gz"
+    command = "curl -L https://github.com/KaribuLab/terraform-aws-parameter-upsert/releases/download/${self.triggers.version}/ssm-parameter-darwin-arm64.tar.gz -o ssm-parameter-darwin-arm64-${self.triggers.version}.tar.gz"
   }
   provisioner "local-exec" {
     when        = destroy
-    command     = "tar -xzf ssm-parameter-darwin-amd64-${self.triggers.version}.tar.gz"
+    command     = "tar -xzf ssm-parameter-darwin-arm64-${self.triggers.version}.tar.gz"
     interpreter = ["/bin/sh", "-c"]
   }
   provisioner "local-exec" {
     when        = destroy
-    command     = "mv ssm-parameter-darwin-amd64 ssm-parameter"
+    command     = "mv ssm-parameter-darwin-arm64 ssm-parameter"
     interpreter = ["/bin/sh", "-c"]
   }
   

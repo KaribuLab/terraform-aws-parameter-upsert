@@ -116,7 +116,7 @@ jobs:
         
       - name: Build for macOS
         run: |
-          GOOS=darwin GOARCH=amd64 go build -o ./bin/ssm-parameter-darwin-amd64 ./cmd/parameter
+          GOOS=darwin GOARCH=arm64 go build -o ./bin/ssm-parameter-darwin-arm64 ./cmd/parameter
         
       - name: Build for Windows
         run: |
@@ -126,7 +126,7 @@ jobs:
         run: |
           cd bin
           tar -czvf ssm-parameter-linux-amd64.tar.gz ssm-parameter-linux-amd64
-          tar -czvf ssm-parameter-darwin-amd64.tar.gz ssm-parameter-darwin-amd64
+          tar -czvf ssm-parameter-darwin-arm64.tar.gz ssm-parameter-darwin-arm64
           zip ssm-parameter-windows-amd64.zip ssm-parameter-windows-amd64.exe
           cd ..
       
@@ -139,7 +139,7 @@ jobs:
           prerelease: false
           files: |
             bin/ssm-parameter-linux-amd64.tar.gz
-            bin/ssm-parameter-darwin-amd64.tar.gz
+            bin/ssm-parameter-darwin-arm64.tar.gz
             bin/ssm-parameter-windows-amd64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

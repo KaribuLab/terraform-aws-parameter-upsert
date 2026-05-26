@@ -1,12 +1,35 @@
 locals {
   version    = var.binary_version
-  is_windows = length(regexall("^[a-z]:", lower(abspath(path.root)))) > 0
-  is_darwin  = length(regexall("^/users", lower(abspath(path.root)))) > 0
-  is_linux   = !local.is_windows && !local.is_darwin
   json_input = jsonencode({
     base_path  = var.base_path
     parameters = var.parameters
   })
+
+  # Solo elige que script de deteccion ejecutar (ruta con unidad C: vs Unix).
+  root_path            = lower(abspath(path.root))
+  use_windows_detector = length(regexall("^[a-z]:", local.root_path)) > 0
+}
+
+data "external" "os" {
+  count = var.platform == "" ? 1 : 0
+
+  program = local.use_windows_detector ? [
+    "powershell",
+    "-NoProfile",
+    "-NonInteractive",
+    "-File",
+    "${path.module}/scripts/detect_os.ps1",
+  ] : [
+    "sh",
+    "${path.module}/scripts/detect_os.sh",
+  ]
+}
+
+locals {
+  platform   = var.platform != "" ? var.platform : try(data.external.os[0].result.os, "linux")
+  is_windows = local.platform == "windows"
+  is_darwin  = local.platform == "darwin"
+  is_linux   = local.platform == "linux"
 }
 
 resource "null_resource" "ssm_parameter_linux_amd64" {

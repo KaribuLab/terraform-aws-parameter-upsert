@@ -34,7 +34,7 @@ rsync -av --delete \
   --exclude='.git' \
   --exclude='bitbucket-repo' \
   --exclude='.github' \
-  --exclude='scripts' \
+  --exclude='scripts/push_to_mirror.sh' \
   --exclude='test' \
   --exclude='.env' \
   --exclude='.terraform' \

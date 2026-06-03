@@ -248,14 +248,14 @@ EOF
   # Ejecutar creación
   provisioner "local-exec" {
     when        = create
-    command     = "ssm-parameter -input-path input.json"
+    command     = ".\\ssm-parameter.exe -input-path input.json"
     interpreter = ["PowerShell", "-Command"]
   }
 
   # Ejecutar destrucción
   provisioner "local-exec" {
     when        = destroy
-    command     = "ssm-parameter -input-path input.json -delete"
+    command     = ".\\ssm-parameter.exe -input-path input.json -delete"
     interpreter = ["PowerShell", "-Command"]
   }
 }

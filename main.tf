@@ -76,19 +76,21 @@ resource "null_resource" "ssm_parameter_linux_amd64" {
   # Crear archivo de entrada (CREATE)
   provisioner "local-exec" {
     when = create
-    command = <<EOF
-    cat <<FILE > input.json
-    ${self.triggers.json_input}
-    EOF
+    command = <<-EOF
+cat <<FILE > input.json
+${self.triggers.json_input}
+FILE
+EOF
   }
   
   # Crear archivo de entrada (DESTROY)
   provisioner "local-exec" {
     when = destroy
-    command = <<EOF
-    cat <<FILE > input.json
-    ${self.triggers.json_input}
-    EOF
+    command = <<-EOF
+cat <<FILE > input.json
+${self.triggers.json_input}
+FILE
+EOF
   }
 
   # Ejecutar creación
@@ -148,19 +150,21 @@ resource "null_resource" "ssm_parameter_darwin_arm64" {
   # Crear archivo de entrada (CREATE)
   provisioner "local-exec" {
     when = create
-    command = <<EOF
-    cat <<FILE > input.json
-    ${self.triggers.json_input}
-    EOF
+    command = <<-EOF
+cat <<FILE > input.json
+${self.triggers.json_input}
+FILE
+EOF
   }
   
   # Crear archivo de entrada (DESTROY)
   provisioner "local-exec" {
     when = destroy
-    command = <<EOF
-    cat <<FILE > input.json
-    ${self.triggers.json_input}
-    EOF
+    command = <<-EOF
+cat <<FILE > input.json
+${self.triggers.json_input}
+FILE
+EOF
   }
   
   # Ejecutar creación
@@ -222,22 +226,22 @@ resource "null_resource" "ssm_parameter_windows_amd64" {
   # Crear archivo de entrada (CREATE)
   provisioner "local-exec" {
     when = create
-    command = <<EOF
-    @"
-    ${self.triggers.json_input}
-    "@ | Out-File -FilePath "input.json" -Encoding utf8
-    EOF
+    command = <<-EOF
+@"
+${self.triggers.json_input}
+"@ | Out-File -FilePath "input.json" -Encoding utf8
+EOF
     interpreter = ["PowerShell", "-Command"]
   }
   
   # Crear archivo de entrada (DESTROY)
   provisioner "local-exec" {
     when = destroy
-    command = <<EOF
-    @"
-    ${self.triggers.json_input}
-    "@ | Out-File -FilePath "input.json" -Encoding utf8
-    EOF
+    command = <<-EOF
+@"
+${self.triggers.json_input}
+"@ | Out-File -FilePath "input.json" -Encoding utf8
+EOF
     interpreter = ["PowerShell", "-Command"]
   }
   

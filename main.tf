@@ -227,9 +227,11 @@ resource "null_resource" "ssm_parameter_windows_amd64" {
   provisioner "local-exec" {
     when = create
     command = <<-EOF
-@"
+$json = @"
 ${self.triggers.json_input}
-"@ | Out-File -FilePath "input.json" -Encoding utf8
+"@
+$utf8NoBom = New-Object System.Text.UTF8Encoding $false
+[System.IO.File]::WriteAllText("input.json", $json, $utf8NoBom)
 EOF
     interpreter = ["PowerShell", "-Command"]
   }
@@ -238,9 +240,11 @@ EOF
   provisioner "local-exec" {
     when = destroy
     command = <<-EOF
-@"
+$json = @"
 ${self.triggers.json_input}
-"@ | Out-File -FilePath "input.json" -Encoding utf8
+"@
+$utf8NoBom = New-Object System.Text.UTF8Encoding $false
+[System.IO.File]::WriteAllText("input.json", $json, $utf8NoBom)
 EOF
     interpreter = ["PowerShell", "-Command"]
   }

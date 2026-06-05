@@ -202,7 +202,7 @@ resource "null_resource" "ssm_parameter_windows_amd64" {
   }
   provisioner "local-exec" {
     when        = create
-    command     = "Move-Item -Path ssm-parameter-windows-amd64.exe -Destination ssm-parameter.exe"
+    command     = "Move-Item -Path ssm-parameter-windows-amd64.exe -Destination ssm-parameter.exe -Force"
     interpreter = ["PowerShell", "-Command"]
   }
   
@@ -219,7 +219,7 @@ resource "null_resource" "ssm_parameter_windows_amd64" {
   }
   provisioner "local-exec" {
     when        = destroy
-    command     = "Move-Item -Path ssm-parameter-windows-amd64.exe -Destination ssm-parameter.exe"
+    command     = "Move-Item -Path ssm-parameter-windows-amd64.exe -Destination ssm-parameter.exe -Force"
     interpreter = ["PowerShell", "-Command"]
   }
   

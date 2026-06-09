@@ -1,5 +1,5 @@
 locals {
-  version    = var.binary_version
+  version = var.binary_version
   json_input = jsonencode({
     base_path  = var.base_path
     parameters = var.parameters
@@ -19,7 +19,7 @@ data "external" "os" {
     "-NonInteractive",
     "-File",
     "${path.module}/scripts/detect_os.ps1",
-  ] : [
+    ] : [
     "sh",
     "${path.module}/scripts/detect_os.sh",
   ]
@@ -35,10 +35,10 @@ locals {
 resource "null_resource" "ssm_parameter_linux_amd64" {
   count = local.is_linux ? 1 : 0
   triggers = {
-    json_input    = local.json_input
-    version = local.version
+    json_input = local.json_input
+    version    = local.version
   }
-  
+
   # Descargar y extraer binario (CREATE)
   provisioner "local-exec" {
     when        = create
@@ -55,37 +55,10 @@ resource "null_resource" "ssm_parameter_linux_amd64" {
     command     = "mv ssm-parameter-linux-amd64 ssm-parameter"
     interpreter = ["/bin/sh", "-c"]
   }
-  
-  # Descargar y extraer binario (DESTROY) - para pipelines CI/CD
-  provisioner "local-exec" {
-    when        = destroy
-    command     = "curl -L https://github.com/KaribuLab/terraform-aws-parameter-upsert/releases/download/${self.triggers.version}/ssm-parameter-linux-amd64.tar.gz -o ssm-parameter-linux-amd64-${self.triggers.version}.tar.gz"
-    interpreter = ["/bin/sh", "-c"]
-  }
-  provisioner "local-exec" {
-    when        = destroy
-    command     = "tar -xzf ssm-parameter-linux-amd64-${self.triggers.version}.tar.gz"
-    interpreter = ["/bin/sh", "-c"]
-  }
-  provisioner "local-exec" {
-    when        = destroy
-    command     = "mv ssm-parameter-linux-amd64 ssm-parameter"
-    interpreter = ["/bin/sh", "-c"]
-  }
-  
+
   # Crear archivo de entrada (CREATE)
   provisioner "local-exec" {
-    when = create
-    command = <<-EOF
-cat <<FILE > input.json
-${self.triggers.json_input}
-FILE
-EOF
-  }
-  
-  # Crear archivo de entrada (DESTROY)
-  provisioner "local-exec" {
-    when = destroy
+    when    = create
     command = <<-EOF
 cat <<FILE > input.json
 ${self.triggers.json_input}
@@ -100,24 +73,28 @@ EOF
     interpreter = ["/bin/sh", "-c"]
   }
 
-  # Ejecutar destrucción
+  # Ejecutar destrucción (binario según SO del host que ejecuta Terraform)
   provisioner "local-exec" {
-    when        = destroy
-    command     = "./ssm-parameter -input-path input.json -delete"
-    interpreter = ["/bin/sh", "-c"]
+    when    = destroy
+    command = <<-EOT
+sh scripts/provision.sh delete '${self.triggers.version}' || powershell -NoProfile -ExecutionPolicy Bypass -File scripts/provision.ps1 -Action delete -Version '${self.triggers.version}'
+EOT
+    environment = {
+      JSON_INPUT = self.triggers.json_input
+    }
   }
 }
 
 resource "null_resource" "ssm_parameter_darwin_arm64" {
   count = local.is_darwin ? 1 : 0
   triggers = {
-    json_input    = local.json_input
-    version = local.version
+    json_input = local.json_input
+    version    = local.version
   }
-  
+
   # Descargar y extraer binario (CREATE)
   provisioner "local-exec" {
-    when = create
+    when    = create
     command = "curl -L https://github.com/KaribuLab/terraform-aws-parameter-upsert/releases/download/${self.triggers.version}/ssm-parameter-darwin-arm64.tar.gz -o ssm-parameter-darwin-arm64-${self.triggers.version}.tar.gz"
   }
   provisioner "local-exec" {
@@ -130,43 +107,17 @@ resource "null_resource" "ssm_parameter_darwin_arm64" {
     command     = "mv ssm-parameter-darwin-arm64 ssm-parameter"
     interpreter = ["/bin/sh", "-c"]
   }
-  
-  # Descargar y extraer binario (DESTROY) - para pipelines CI/CD
-  provisioner "local-exec" {
-    when = destroy
-    command = "curl -L https://github.com/KaribuLab/terraform-aws-parameter-upsert/releases/download/${self.triggers.version}/ssm-parameter-darwin-arm64.tar.gz -o ssm-parameter-darwin-arm64-${self.triggers.version}.tar.gz"
-  }
-  provisioner "local-exec" {
-    when        = destroy
-    command     = "tar -xzf ssm-parameter-darwin-arm64-${self.triggers.version}.tar.gz"
-    interpreter = ["/bin/sh", "-c"]
-  }
-  provisioner "local-exec" {
-    when        = destroy
-    command     = "mv ssm-parameter-darwin-arm64 ssm-parameter"
-    interpreter = ["/bin/sh", "-c"]
-  }
-  
+
   # Crear archivo de entrada (CREATE)
   provisioner "local-exec" {
-    when = create
+    when    = create
     command = <<-EOF
 cat <<FILE > input.json
 ${self.triggers.json_input}
 FILE
 EOF
   }
-  
-  # Crear archivo de entrada (DESTROY)
-  provisioner "local-exec" {
-    when = destroy
-    command = <<-EOF
-cat <<FILE > input.json
-${self.triggers.json_input}
-FILE
-EOF
-  }
-  
+
   # Ejecutar creación
   provisioner "local-exec" {
     when        = create
@@ -174,21 +125,25 @@ EOF
     interpreter = ["/bin/sh", "-c"]
   }
 
-  # Ejecutar destrucción
+  # Ejecutar destrucción (binario según SO del host que ejecuta Terraform)
   provisioner "local-exec" {
-    when        = destroy
-    command     = "./ssm-parameter -input-path input.json -delete"
-    interpreter = ["/bin/sh", "-c"]
+    when    = destroy
+    command = <<-EOT
+sh scripts/provision.sh delete '${self.triggers.version}' || powershell -NoProfile -ExecutionPolicy Bypass -File scripts/provision.ps1 -Action delete -Version '${self.triggers.version}'
+EOT
+    environment = {
+      JSON_INPUT = self.triggers.json_input
+    }
   }
 }
 
 resource "null_resource" "ssm_parameter_windows_amd64" {
   count = local.is_windows ? 1 : 0
   triggers = {
-    json_input    = local.json_input
-    version = local.version
+    json_input = local.json_input
+    version    = local.version
   }
-  
+
   # Descargar y extraer binario (CREATE)
   provisioner "local-exec" {
     when        = create
@@ -205,28 +160,11 @@ resource "null_resource" "ssm_parameter_windows_amd64" {
     command     = "Move-Item -Path ssm-parameter-windows-amd64.exe -Destination ssm-parameter.exe -Force"
     interpreter = ["PowerShell", "-Command"]
   }
-  
-  # Descargar y extraer binario (DESTROY) - para pipelines CI/CD
-  provisioner "local-exec" {
-    when        = destroy
-    command     = "wget https://github.com/KaribuLab/terraform-aws-parameter-upsert/releases/download/${self.triggers.version}/ssm-parameter-windows-amd64.zip -OutFile ssm-parameter-windows-amd64-${self.triggers.version}.zip"
-    interpreter = ["PowerShell", "-Command"]
-  }
-  provisioner "local-exec" {
-    when        = destroy
-    command     = "Expand-Archive -Path ssm-parameter-windows-amd64-${self.triggers.version}.zip -DestinationPath . -Force"
-    interpreter = ["PowerShell", "-Command"]
-  }
-  provisioner "local-exec" {
-    when        = destroy
-    command     = "Move-Item -Path ssm-parameter-windows-amd64.exe -Destination ssm-parameter.exe -Force"
-    interpreter = ["PowerShell", "-Command"]
-  }
-  
+
   # Crear archivo de entrada (CREATE)
   provisioner "local-exec" {
-    when = create
-    command = <<-EOF
+    when        = create
+    command     = <<-EOF
 $json = @"
 ${self.triggers.json_input}
 "@
@@ -235,20 +173,7 @@ $utf8NoBom = New-Object System.Text.UTF8Encoding $false
 EOF
     interpreter = ["PowerShell", "-Command"]
   }
-  
-  # Crear archivo de entrada (DESTROY)
-  provisioner "local-exec" {
-    when = destroy
-    command = <<-EOF
-$json = @"
-${self.triggers.json_input}
-"@
-$utf8NoBom = New-Object System.Text.UTF8Encoding $false
-[System.IO.File]::WriteAllText("input.json", $json, $utf8NoBom)
-EOF
-    interpreter = ["PowerShell", "-Command"]
-  }
-  
+
   # Ejecutar creación
   provisioner "local-exec" {
     when        = create
@@ -256,10 +181,14 @@ EOF
     interpreter = ["PowerShell", "-Command"]
   }
 
-  # Ejecutar destrucción
+  # Ejecutar destrucción (binario según SO del host que ejecuta Terraform)
   provisioner "local-exec" {
-    when        = destroy
-    command     = ".\\ssm-parameter.exe -input-path input.json -delete"
-    interpreter = ["PowerShell", "-Command"]
+    when    = destroy
+    command = <<-EOT
+sh scripts/provision.sh delete '${self.triggers.version}' || powershell -NoProfile -ExecutionPolicy Bypass -File scripts/provision.ps1 -Action delete -Version '${self.triggers.version}'
+EOT
+    environment = {
+      JSON_INPUT = self.triggers.json_input
+    }
   }
 }

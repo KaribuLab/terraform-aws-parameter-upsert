@@ -9,8 +9,26 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$Version = $Version.Trim().Trim("'").Trim('"')
+
 if (-not $env:JSON_INPUT) {
   throw "JSON_INPUT environment variable is required"
+}
+
+function Get-ReleaseAsset {
+  param(
+    [string]$Url,
+    [string]$OutFile
+  )
+
+  # Invoke-WebRequest puede fallar con GitHub en Windows PowerShell 5.1 sin User-Agent.
+  $headers = @{ "User-Agent" = "terraform-aws-parameter-upsert" }
+  try {
+    Invoke-WebRequest -Uri $Url -OutFile $OutFile -UseBasicParsing -Headers $headers
+  } catch {
+    # Mismo metodo que el provisioner de create en Windows (alias wget).
+    wget $Url -OutFile $OutFile -Headers $headers
+  }
 }
 
 if ($env:OS -eq "Windows_NT") {
@@ -32,21 +50,21 @@ $baseUrl = "https://github.com/KaribuLab/terraform-aws-parameter-upsert/releases
 switch ($os) {
   "windows" {
     $archive = "ssm-parameter-windows-amd64-$Version.zip"
-    Invoke-WebRequest -Uri "$baseUrl/ssm-parameter-windows-amd64.zip" -OutFile $archive
+    Get-ReleaseAsset -Url "$baseUrl/ssm-parameter-windows-amd64.zip" -OutFile $archive
     Expand-Archive -Path $archive -DestinationPath . -Force
     Move-Item -Path ssm-parameter-windows-amd64.exe -Destination ssm-parameter.exe -Force
     $bin = ".\ssm-parameter.exe"
   }
   "darwin" {
     $archive = "ssm-parameter-darwin-arm64-$Version.tar.gz"
-    Invoke-WebRequest -Uri "$baseUrl/ssm-parameter-darwin-arm64.tar.gz" -OutFile $archive
+    Get-ReleaseAsset -Url "$baseUrl/ssm-parameter-darwin-arm64.tar.gz" -OutFile $archive
     tar -xzf $archive
     Move-Item -Path ssm-parameter-darwin-arm64 -Destination ssm-parameter -Force
     $bin = ".\ssm-parameter"
   }
   default {
     $archive = "ssm-parameter-linux-amd64-$Version.tar.gz"
-    Invoke-WebRequest -Uri "$baseUrl/ssm-parameter-linux-amd64.tar.gz" -OutFile $archive
+    Get-ReleaseAsset -Url "$baseUrl/ssm-parameter-linux-amd64.tar.gz" -OutFile $archive
     tar -xzf $archive
     Move-Item -Path ssm-parameter-linux-amd64 -Destination ssm-parameter -Force
     $bin = ".\ssm-parameter"

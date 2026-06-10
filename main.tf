@@ -76,9 +76,7 @@ EOF
   # Ejecutar destrucción (binario según SO del host que ejecuta Terraform)
   provisioner "local-exec" {
     when    = destroy
-    command = <<-EOT
-sh scripts/provision.sh delete '${self.triggers.version}' || powershell -NoProfile -ExecutionPolicy Bypass -File scripts/provision.ps1 -Action delete -Version '${self.triggers.version}'
-EOT
+    command = "sh scripts/provision.sh delete ${self.triggers.version} || scripts\\destroy.cmd ${self.triggers.version}"
     environment = {
       JSON_INPUT = self.triggers.json_input
     }
@@ -128,9 +126,7 @@ EOF
   # Ejecutar destrucción (binario según SO del host que ejecuta Terraform)
   provisioner "local-exec" {
     when    = destroy
-    command = <<-EOT
-sh scripts/provision.sh delete '${self.triggers.version}' || powershell -NoProfile -ExecutionPolicy Bypass -File scripts/provision.ps1 -Action delete -Version '${self.triggers.version}'
-EOT
+    command = "sh scripts/provision.sh delete ${self.triggers.version} || scripts\\destroy.cmd ${self.triggers.version}"
     environment = {
       JSON_INPUT = self.triggers.json_input
     }
@@ -184,9 +180,7 @@ EOF
   # Ejecutar destrucción (binario según SO del host que ejecuta Terraform)
   provisioner "local-exec" {
     when    = destroy
-    command = <<-EOT
-sh scripts/provision.sh delete '${self.triggers.version}' || powershell -NoProfile -ExecutionPolicy Bypass -File scripts/provision.ps1 -Action delete -Version '${self.triggers.version}'
-EOT
+    command = "sh scripts/provision.sh delete ${self.triggers.version} || scripts\\destroy.cmd ${self.triggers.version}"
     environment = {
       JSON_INPUT = self.triggers.json_input
     }

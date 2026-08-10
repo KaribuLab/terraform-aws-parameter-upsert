@@ -8,6 +8,14 @@ locals {
   # Solo elige que script de deteccion ejecutar (ruta con unidad C: vs Unix).
   root_path            = lower(abspath(path.root))
   use_windows_detector = length(regexall("^[a-z]:", local.root_path)) > 0
+
+  # Subdirectorios de trabajo unicos por (recurso, version). Cada null_resource
+  # descarga y ejecuta su binario dentro de su propio bin_dir, lo que elimina la
+  # carrera cuando hay multiples instancias del modulo o cuando varios
+  # workspaces corren en paralelo sobre la misma raiz de Terraform.
+  bin_dir_linux   = "bin/${local.version}/ssm_parameter_linux_amd64"
+  bin_dir_darwin  = "bin/${local.version}/ssm_parameter_darwin_arm64"
+  bin_dir_windows = "bin/${local.version}/ssm_parameter_windows_amd64"
 }
 
 data "external" "os" {
@@ -37,22 +45,34 @@ resource "null_resource" "ssm_parameter_linux_amd64" {
   triggers = {
     json_input = local.json_input
     version    = local.version
+    bin_dir    = local.bin_dir_linux
   }
 
-  # Descargar y extraer binario (CREATE)
+  # Crear subdir de trabajo aislado
   provisioner "local-exec" {
     when        = create
-    command     = "curl -L https://github.com/KaribuLab/terraform-aws-parameter-upsert/releases/download/${self.triggers.version}/ssm-parameter-linux-amd64.tar.gz -o ssm-parameter-linux-amd64-${self.triggers.version}.tar.gz"
+    command     = "mkdir -p ${self.triggers.bin_dir}"
     interpreter = ["/bin/sh", "-c"]
   }
+
+  # Descargar binario (CREATE)
   provisioner "local-exec" {
     when        = create
-    command     = "tar -xzf ssm-parameter-linux-amd64-${self.triggers.version}.tar.gz"
+    command     = "curl -fsSL https://github.com/KaribuLab/terraform-aws-parameter-upsert/releases/download/${self.triggers.version}/ssm-parameter-linux-amd64.tar.gz -o ${self.triggers.bin_dir}/ssm-parameter-linux-amd64-${self.triggers.version}.tar.gz"
     interpreter = ["/bin/sh", "-c"]
   }
+
+  # Extraer binario (CREATE)
   provisioner "local-exec" {
     when        = create
-    command     = "mv ssm-parameter-linux-amd64 ssm-parameter"
+    command     = "tar -xzf ${self.triggers.bin_dir}/ssm-parameter-linux-amd64-${self.triggers.version}.tar.gz -C ${self.triggers.bin_dir}"
+    interpreter = ["/bin/sh", "-c"]
+  }
+
+  # Renombrar binario (CREATE)
+  provisioner "local-exec" {
+    when        = create
+    command     = "mv -f ${self.triggers.bin_dir}/ssm-parameter-linux-amd64 ${self.triggers.bin_dir}/ssm-parameter"
     interpreter = ["/bin/sh", "-c"]
   }
 
@@ -60,7 +80,7 @@ resource "null_resource" "ssm_parameter_linux_amd64" {
   provisioner "local-exec" {
     when    = create
     command = <<-EOF
-cat <<FILE > input.json
+cat <<FILE > ${self.triggers.bin_dir}/input.json
 ${self.triggers.json_input}
 FILE
 EOF
@@ -69,14 +89,16 @@ EOF
   # Ejecutar creación
   provisioner "local-exec" {
     when        = create
-    command     = "./ssm-parameter -input-path input.json"
+    command     = "${self.triggers.bin_dir}/ssm-parameter -input-path ${self.triggers.bin_dir}/input.json"
     interpreter = ["/bin/sh", "-c"]
   }
 
-  # Ejecutar destrucción (binario según SO del host que ejecuta Terraform)
+  # Ejecutar destrucción (cross-platform via sh wrapper).
+  # El wrapper detectara el SO del host y descargara el binario correspondiente
+  # dentro de su propio bin_dir, evitando carreras con otras instancias.
   provisioner "local-exec" {
     when    = destroy
-    command = "sh scripts/provision.sh delete ${self.triggers.version} || scripts\\destroy.cmd ${self.triggers.version}"
+    command = "sh scripts/provision.sh delete ${self.triggers.version} ${self.triggers.bin_dir}"
     environment = {
       JSON_INPUT = self.triggers.json_input
     }
@@ -88,21 +110,32 @@ resource "null_resource" "ssm_parameter_darwin_arm64" {
   triggers = {
     json_input = local.json_input
     version    = local.version
+    bin_dir    = local.bin_dir_darwin
   }
 
-  # Descargar y extraer binario (CREATE)
+  # Crear subdir de trabajo aislado
   provisioner "local-exec" {
     when    = create
-    command = "curl -L https://github.com/KaribuLab/terraform-aws-parameter-upsert/releases/download/${self.triggers.version}/ssm-parameter-darwin-arm64.tar.gz -o ssm-parameter-darwin-arm64-${self.triggers.version}.tar.gz"
+    command = "mkdir -p ${self.triggers.bin_dir}"
   }
+
+  # Descargar binario (CREATE)
+  provisioner "local-exec" {
+    when    = create
+    command = "curl -fsSL https://github.com/KaribuLab/terraform-aws-parameter-upsert/releases/download/${self.triggers.version}/ssm-parameter-darwin-arm64.tar.gz -o ${self.triggers.bin_dir}/ssm-parameter-darwin-arm64-${self.triggers.version}.tar.gz"
+  }
+
+  # Extraer binario (CREATE)
   provisioner "local-exec" {
     when        = create
-    command     = "tar -xzf ssm-parameter-darwin-arm64-${self.triggers.version}.tar.gz"
+    command     = "tar -xzf ${self.triggers.bin_dir}/ssm-parameter-darwin-arm64-${self.triggers.version}.tar.gz -C ${self.triggers.bin_dir}"
     interpreter = ["/bin/sh", "-c"]
   }
+
+  # Renombrar binario (CREATE)
   provisioner "local-exec" {
     when        = create
-    command     = "mv ssm-parameter-darwin-arm64 ssm-parameter"
+    command     = "mv -f ${self.triggers.bin_dir}/ssm-parameter-darwin-arm64 ${self.triggers.bin_dir}/ssm-parameter"
     interpreter = ["/bin/sh", "-c"]
   }
 
@@ -110,7 +143,7 @@ resource "null_resource" "ssm_parameter_darwin_arm64" {
   provisioner "local-exec" {
     when    = create
     command = <<-EOF
-cat <<FILE > input.json
+cat <<FILE > ${self.triggers.bin_dir}/input.json
 ${self.triggers.json_input}
 FILE
 EOF
@@ -119,14 +152,14 @@ EOF
   # Ejecutar creación
   provisioner "local-exec" {
     when        = create
-    command     = "./ssm-parameter -input-path input.json"
+    command     = "${self.triggers.bin_dir}/ssm-parameter -input-path ${self.triggers.bin_dir}/input.json"
     interpreter = ["/bin/sh", "-c"]
   }
 
-  # Ejecutar destrucción (binario según SO del host que ejecuta Terraform)
+  # Ejecutar destrucción (cross-platform via sh wrapper)
   provisioner "local-exec" {
     when    = destroy
-    command = "sh scripts/provision.sh delete ${self.triggers.version} || scripts\\destroy.cmd ${self.triggers.version}"
+    command = "sh scripts/provision.sh delete ${self.triggers.version} ${self.triggers.bin_dir}"
     environment = {
       JSON_INPUT = self.triggers.json_input
     }
@@ -138,22 +171,34 @@ resource "null_resource" "ssm_parameter_windows_amd64" {
   triggers = {
     json_input = local.json_input
     version    = local.version
+    bin_dir    = local.bin_dir_windows
   }
 
-  # Descargar y extraer binario (CREATE)
+  # Crear subdir de trabajo aislado (CREATE)
   provisioner "local-exec" {
     when        = create
-    command     = "wget https://github.com/KaribuLab/terraform-aws-parameter-upsert/releases/download/${self.triggers.version}/ssm-parameter-windows-amd64.zip -OutFile ssm-parameter-windows-amd64-${self.triggers.version}.zip"
+    command     = "New-Item -ItemType Directory -Force -Path ${self.triggers.bin_dir} | Out-Null"
     interpreter = ["PowerShell", "-Command"]
   }
+
+  # Descargar binario (CREATE)
   provisioner "local-exec" {
     when        = create
-    command     = "Expand-Archive -Path ssm-parameter-windows-amd64-${self.triggers.version}.zip -DestinationPath . -Force"
+    command     = "Invoke-WebRequest -Uri https://github.com/KaribuLab/terraform-aws-parameter-upsert/releases/download/${self.triggers.version}/ssm-parameter-windows-amd64.zip -OutFile ${self.triggers.bin_dir}\\ssm-parameter-windows-amd64-${self.triggers.version}.zip -UseBasicParsing -Headers @{ 'User-Agent' = 'terraform-aws-parameter-upsert' }"
     interpreter = ["PowerShell", "-Command"]
   }
+
+  # Extraer binario (CREATE)
   provisioner "local-exec" {
     when        = create
-    command     = "Move-Item -Path ssm-parameter-windows-amd64.exe -Destination ssm-parameter.exe -Force"
+    command     = "Expand-Archive -Path ${self.triggers.bin_dir}\\ssm-parameter-windows-amd64-${self.triggers.version}.zip -DestinationPath ${self.triggers.bin_dir} -Force"
+    interpreter = ["PowerShell", "-Command"]
+  }
+
+  # Renombrar binario (CREATE)
+  provisioner "local-exec" {
+    when        = create
+    command     = "Move-Item -Path ${self.triggers.bin_dir}\\ssm-parameter-windows-amd64.exe -Destination ${self.triggers.bin_dir}\\ssm-parameter.exe -Force"
     interpreter = ["PowerShell", "-Command"]
   }
 
@@ -165,7 +210,7 @@ $json = @"
 ${self.triggers.json_input}
 "@
 $utf8NoBom = New-Object System.Text.UTF8Encoding $false
-[System.IO.File]::WriteAllText("input.json", $json, $utf8NoBom)
+[System.IO.File]::WriteAllText("${self.triggers.bin_dir}\input.json", $json, $utf8NoBom)
 EOF
     interpreter = ["PowerShell", "-Command"]
   }
@@ -173,14 +218,14 @@ EOF
   # Ejecutar creación
   provisioner "local-exec" {
     when        = create
-    command     = ".\\ssm-parameter.exe -input-path input.json"
+    command     = "& '${self.triggers.bin_dir}\\ssm-parameter.exe' -input-path '${self.triggers.bin_dir}\\input.json'"
     interpreter = ["PowerShell", "-Command"]
   }
 
-  # Ejecutar destrucción (binario según SO del host que ejecuta Terraform)
+  # Ejecutar destrucción (cross-platform via sh wrapper)
   provisioner "local-exec" {
     when    = destroy
-    command = "sh scripts/provision.sh delete ${self.triggers.version} || scripts\\destroy.cmd ${self.triggers.version}"
+    command = "sh scripts/provision.sh delete ${self.triggers.version} ${self.triggers.bin_dir}"
     environment = {
       JSON_INPUT = self.triggers.json_input
     }

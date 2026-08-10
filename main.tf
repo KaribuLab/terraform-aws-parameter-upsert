@@ -93,14 +93,9 @@ EOF
   }
 
   # Ejecutar destrucción (cross-platform via sh wrapper).
-  # El wrapper detectara el SO del host y descargara el binario correspondiente
-  # dentro de su propio bin_dir (mismo path que uso CREATE), evitando carreras
-  # con otras instancias. NO pasamos bin_dir desde Terraform: local.* no es
-  # valido en destroy provisioners, asi que provision.sh lo deriva de la version
-  # y el SO detectado.
   provisioner "local-exec" {
     when    = destroy
-    command = "sh scripts/provision.sh delete ${self.triggers.version}"
+    command = "sh scripts/provision.sh delete ${local.version} ${local.bin_dir_linux}"
     environment = {
       JSON_INPUT = self.triggers.json_input
     }
@@ -160,7 +155,7 @@ EOF
   # Ejecutar destrucción (cross-platform via sh wrapper)
   provisioner "local-exec" {
     when    = destroy
-    command = "sh scripts/provision.sh delete ${self.triggers.version}"
+    command = "sh scripts/provision.sh delete ${local.version} ${local.bin_dir_darwin}"
     environment = {
       JSON_INPUT = self.triggers.json_input
     }
@@ -225,7 +220,7 @@ EOF
   # Ejecutar destrucción (cross-platform via sh wrapper)
   provisioner "local-exec" {
     when    = destroy
-    command = "sh scripts/provision.sh delete ${self.triggers.version}"
+    command = "sh scripts/provision.sh delete ${local.version} ${local.bin_dir_windows}"
     environment = {
       JSON_INPUT = self.triggers.json_input
     }

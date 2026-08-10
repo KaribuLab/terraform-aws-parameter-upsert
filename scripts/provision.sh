@@ -3,7 +3,6 @@ set -e
 
 ACTION="$1"
 VERSION="$2"
-BIN_DIR="${3:-bin/${VERSION}/ssm-parameter}"
 
 if [ -z "$ACTION" ] || [ -z "$VERSION" ]; then
   echo "usage: provision.sh <upsert|delete> <version> [bin_dir]" >&2
@@ -15,12 +14,27 @@ if [ -z "$JSON_INPUT" ]; then
   exit 1
 fi
 
+# Detectar SO y arquitectura del host que ejecuta el script. Mantenemos el
+# mismo mapa que main.tf usa en sus locals (bin_dir_linux/darwin/windows) para
+# que CREATE y DESTROY operen sobre el mismo bin_dir sin tener que pasarlo
+# desde Terraform (local.* no es valido en destroy provisioners).
 os=linux
 case "$(uname -s)" in
   Darwin) os=darwin ;;
   Linux) os=linux ;;
   CYGWIN* | MINGW* | MSYS*) os=windows ;;
 esac
+
+case "$os" in
+  darwin)  arch=arm64 ;;  # solo publicamos darwin-arm64
+  windows) arch=amd64 ;;
+  linux)   arch=amd64 ;;
+esac
+
+# Default: misma convencion que main.tf. Se puede sobreescribir pasando el
+# 3er argumento (util si el caller quiere un path distinto).
+default_bin_dir="bin/${VERSION}/ssm_parameter_${os}_${arch}"
+BIN_DIR="${3:-$default_bin_dir}"
 
 base_url="https://github.com/KaribuLab/terraform-aws-parameter-upsert/releases/download/${VERSION}"
 

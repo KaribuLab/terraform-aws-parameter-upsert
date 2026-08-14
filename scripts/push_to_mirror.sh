@@ -48,7 +48,6 @@ rsync -av --delete \
 
 git add --all "$mirror_subdir"
 
-curl -sL https://github.com/KaribuLab/kli/releases/download/v0.2.2/kli  --output /tmp/kli && chmod +x /tmp/kli
 created_commit=false
 # Commit changes
 if ! git diff --cached --quiet; then
@@ -59,17 +58,24 @@ else
 fi
 # Push to bitbucket (usar -u para crear la rama remota si no existe)
 git push -u origin "$source_branch"
-latest_version=$( /tmp/kli semver 2>&1 )
-# Create a new tag
-if git rev-parse -q --verify "refs/tags/$latest_version" >/dev/null || \
-   git ls-remote --exit-code --tags origin "refs/tags/$latest_version" >/dev/null 2>&1; then
-    echo "Tag $latest_version already exists, skipping tag creation"
+
+# Espejar tags de GitHub en Bitbucket (mismo nombre, sin kli semver).
+git -C "$source_repo_dir" fetch --tags origin 2>/dev/null || git -C "$source_repo_dir" fetch --tags 2>/dev/null || true
+source_sha=$(git -C "$source_repo_dir" rev-parse HEAD)
+mapfile -t github_tags < <(git -C "$source_repo_dir" tag -l 'v*' --points-at "$source_sha" | sort -V)
+
+if [ "${#github_tags[@]}" -eq 0 ]; then
+    echo "No GitHub tags point at synced commit $source_sha; skipping tag mirror"
 else
-    echo "Creating new tag: $latest_version"
-    git tag "$latest_version"
-    # Push to bitbucket with new tag
-    echo "Pushing to bitbucket with new tag: $latest_version"
-    git push origin "refs/tags/$latest_version"
+    for github_tag in "${github_tags[@]}"; do
+        if git ls-remote --exit-code --tags origin "refs/tags/${github_tag}" >/dev/null 2>&1; then
+            echo "Tag $github_tag already exists on Bitbucket, skipping"
+            continue
+        fi
+        echo "Mirroring GitHub tag $github_tag to Bitbucket at current commit"
+        git tag "$github_tag"
+        git push origin "refs/tags/$github_tag"
+    done
 fi
 # Create a pull request to Bitbucket
 if [ "$created_commit" = true ]; then

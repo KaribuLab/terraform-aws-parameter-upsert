@@ -28,3 +28,9 @@ variable "parameters" {
     description = string
   }))
 }
+
+variable "common_tags" {
+  description = "Tags a aplicar a cada parametro publicado (Project, Team, Customer, ManagedBy...). Se aplican con AddTagsToResource porque PutParameter no los acepta junto con Overwrite."
+  type        = map(string)
+  default     = {}
+}

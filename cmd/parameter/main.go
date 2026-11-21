@@ -17,8 +17,9 @@ import (
 )
 
 type Input struct {
-	BasePath   string      `json:"base_path"`
-	Parameters []Parameter `json:"parameters"`
+	BasePath   string            `json:"base_path"`
+	Parameters []Parameter       `json:"parameters"`
+	Tags       map[string]string `json:"tags,omitempty"`
 }
 
 type Parameter struct {
@@ -27,6 +28,14 @@ type Parameter struct {
 	Type        string `json:"type"`
 	Tier        string `json:"tier"`
 	Description string `json:"description"`
+}
+
+func toSSMTags(m map[string]string) []types.Tag {
+	out := make([]types.Tag, 0, len(m))
+	for k, v := range m {
+		out = append(out, types.Tag{Key: &k, Value: &v})
+	}
+	return out
 }
 
 var overwrite bool = true
@@ -108,6 +117,17 @@ func main() {
 				Type:        types.ParameterType(parameter.Type),
 				Overwrite:   &overwrite,
 			})
+			if err == nil && len(inputData.Tags) > 0 {
+				// PutParameter no acepta Tags junto con Overwrite, asi que el
+				// etiquetado va por separado.
+				if _, terr := client.AddTagsToResource(context.TODO(), &ssm.AddTagsToResourceInput{
+					ResourceType: types.ResourceTypeForTaggingParameter,
+					ResourceId:   &path,
+					Tags:         toSSMTags(inputData.Tags),
+				}); terr != nil {
+					log.Printf("Failed to tag parameter %s: %v", path, terr)
+				}
+			}
 			if err != nil {
 				log.Printf("Failed to put parameter %s: %v", path, err)
 				for i := 0; i < maxRetries; i++ {

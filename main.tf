@@ -1,8 +1,11 @@
 locals {
   version    = var.binary_version
+  # Los tags van dentro del trigger: si cambian, el null_resource se
+  # reemplaza y los parametros se re-publican con los tags nuevos.
   json_input = jsonencode({
     base_path  = var.base_path
     parameters = var.parameters
+    tags       = var.common_tags
   })
 
   # Solo elige que script de deteccion ejecutar (ruta con unidad C: vs Unix).
